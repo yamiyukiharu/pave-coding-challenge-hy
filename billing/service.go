@@ -3,17 +3,22 @@ package billing
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"encore.app/billing/activity"
 	"encore.app/billing/workflow"
 	"encore.dev"
+	"encore.dev/config"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
 
+type Config struct {
+	TemporalHost config.String
+}
+
 var (
 	envName = encore.Meta().Environment.Name
+	cfg     = config.Load[Config]()
 )
 
 //encore:service
@@ -23,11 +28,10 @@ type Service struct {
 }
 
 func initService() (*Service, error) {
-	c, err := client.Dial(client.Options{HostPort: "127.0.0.1:7233"})
+	c, err := client.Dial(client.Options{HostPort: cfg.TemporalHost()})
 	if err != nil {
 		return nil, fmt.Errorf("create temporal client: %v", err)
 	}
-	log.Print("hehhe")
 
 	w := worker.New(c, BillingTaskQueue, worker.Options{})
 

@@ -34,8 +34,8 @@ func CreateBillWorkflow(ctx workflow.Context, input CreateBillWorkflowInput) (*W
 	}
 
 	isDone := false
-	lineItemSignalCh := workflow.GetSignalChannel(ctx, "AddLineItem")
-	finalizeBillSignalCh := workflow.GetSignalChannel(ctx, "FinalizeBill")
+	lineItemSignalCh := workflow.GetSignalChannel(ctx, activity.AddLineItemSignal)
+	finalizeBillSignalCh := workflow.GetSignalChannel(ctx, activity.FinalizeBillSignal)
 	timerFuture := workflow.NewTimer(ctx, durationUntilEnd)
 	selector := workflow.NewSelector(ctx)
 

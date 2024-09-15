@@ -17,7 +17,7 @@ type AddLineItemSignalInput struct {
 }
 
 func CreateBillActivity(ctx context.Context, accountId string, currency string, periodStart, periodEnd time.Time) (int64, error) {
-	return db.InsertBill(ctx, "Open", accountId, currency, periodStart, periodEnd)
+	return db.InsertBill(ctx, db.StatusOpen, accountId, currency, periodStart, periodEnd)
 }
 
 func AddLineItemActivity(
@@ -34,7 +34,7 @@ func AddLineItemActivity(
 }
 
 func FinalizeBillActivity(ctx context.Context, billID int64) error {
-	err := db.UpdateBillStatus(ctx, billID, "closed")
+	err := db.UpdateBillStatus(ctx, billID, db.StatusClosed)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func FinalizeBillActivity(ctx context.Context, billID int64) error {
 }
 
 func TimerFinalizeBillActivity(ctx context.Context, billID int64) error {
-	err := db.UpdateBillStatus(ctx, billID, "closed")
+	err := db.UpdateBillStatus(ctx, billID, db.StatusClosed)
 	if err != nil {
 		return err
 	}

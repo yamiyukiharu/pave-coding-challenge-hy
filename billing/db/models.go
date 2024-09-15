@@ -8,9 +8,16 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+type Status string
+
+const (
+	StatusOpen   Status = "open"
+	StatusClosed Status = "closed"
+)
+
 type DbBill struct {
 	ID          int64           `db:"id,pk,auto"`
-	Status      string          `db:"status"` // index
+	Status      Status          `db:"status"` // index
 	Currency    string          `db:"currency"`
 	AccountId   string          `db:"account_id"` // index
 	TotalAmount decimal.Decimal `db:"total_amount"`
@@ -34,7 +41,7 @@ var billsDb = sqldb.NewDatabase("billing", sqldb.DatabaseConfig{
 	Migrations: "./migrations",
 })
 
-func InsertBill(ctx context.Context, status string, accountId string, currency string, periodStart, periodEnd time.Time) (int64, error) {
+func InsertBill(ctx context.Context, status Status, accountId string, currency string, periodStart, periodEnd time.Time) (int64, error) {
 	const query = `
 		INSERT INTO bill (status, total_amount, account_id, currency, period_start, period_end, created_at)
 		VALUES ($1, 0, $2, $3, $4, $5, now())
@@ -104,7 +111,7 @@ func UpdateBillTotal(ctx context.Context, billID int64, amount decimal.Decimal) 
 	return err
 }
 
-func UpdateBillStatus(ctx context.Context, billID int64, status string) error {
+func UpdateBillStatus(ctx context.Context, billID int64, status Status) error {
 	const query = `
 		UPDATE bill
 		SET status = $1

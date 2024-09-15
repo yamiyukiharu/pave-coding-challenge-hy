@@ -41,7 +41,7 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	s.env.OnActivity(activity.FinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow("FinalizeBill", nil)
+		s.env.SignalWorkflow(activity.FinalizeBillSignal, nil)
 	}, time.Hour)
 
 	// Execute
@@ -85,7 +85,7 @@ func (s *UnitTestSuite) TestAddLineItem() {
 	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow("AddLineItem", lineItem)
+		s.env.SignalWorkflow(activity.AddLineItemSignal, lineItem)
 	}, time.Hour)
 
 	// Execute
