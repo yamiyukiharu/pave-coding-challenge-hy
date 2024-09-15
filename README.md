@@ -1,48 +1,29 @@
-# REST API Starter
+# Billing API
 
-This is a RESTful API Starter with a single Hello World API endpoint.
+This project is a billing API built using [Encore](https://encore.dev) and [Temporal](https://temporal.io) to manage billing workflows. The API allows creating, updating, and querying bills and their line items.
 
-## Developing locally
+## Features
 
-When you have [installed Encore](https://encore.dev/docs/install), you can create a new Encore application and clone this example with this command.
+1. Create new bills.
+2. Add line items to an existing open bill.
+3. Close an active bill and get total charged amount.
+4. Reject adding line items if a bill is already closed.
+5. Query open and closed bills by status and account ID.
+6. Retrieve a bill along with all its line items.
 
-```bash
-encore app create my-app-name --example=hello-world
-```
+## Prerequisites
 
-## Running locally
-```bash
-encore run
-```
+To run this project locally, you’ll need to have the following installed:
 
-While `encore run` is running, open [http://localhost:9400/](http://localhost:9400/) to view Encore's [local developer dashboard](https://encore.dev/docs/observability/dev-dash).
+- [Go](https://golang.org/doc/install)
+- [Docker](https://www.docker.com/get-started)
+- [Encore](https://encore.dev/docs/install)
+- [Temporal CLI](https://docs.temporal.io/docs/server/quick-install)
 
-## Using the API
+## Setup
 
-To see that your app is running, you can ping the API.
-
-```bash
-curl http://localhost:4000/hello/World
-```
-
-## Deployment
-
-Deploy your application to a staging environment in Encore's free development cloud:
+### 1. Clone the repository
 
 ```bash
-git add -A .
-git commit -m 'Commit message'
-git push encore
-```
-
-Then head over to the [Cloud Dashboard](https://app.encore.dev) to monitor your deployment and find your production URL.
-
-From there you can also connect your own AWS or GCP account to use for deployment.
-
-Now off you go into the clouds!
-
-## Testing
-
-```bash
-encore test ./...
-```
+git clone https://github.com/yourusername/billing-api.git
+cd billing-api
