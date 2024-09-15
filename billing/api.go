@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"encore.app/billing/activity"
 	billing "encore.app/billing/workflow"
 	"github.com/shopspring/decimal"
 
@@ -79,7 +80,7 @@ type AddLineItemRequest struct {
 
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
-	err := s.client.SignalWorkflow(ctx, "haha", "", "AddLineItem", billing.AddLineItemSignalInput{
+	err := s.client.SignalWorkflow(ctx, "haha", "", "AddLineItem", activity.AddLineItemSignalInput{
 		Reference:    req.Reference,
 		Description:  req.Description,
 		Amount:       req.Amount,

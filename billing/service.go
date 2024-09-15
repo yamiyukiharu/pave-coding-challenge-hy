@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	billing "encore.app/billing/workflow"
+	"encore.app/billing/activity"
+	"encore.app/billing/workflow"
 	"encore.dev"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -30,10 +31,10 @@ func initService() (*Service, error) {
 
 	w := worker.New(c, BillingTaskQueue, worker.Options{})
 
-	w.RegisterWorkflow(billing.CreateBillWorkflow)
-	w.RegisterActivity(billing.CreateBillActivity)
-	w.RegisterActivity(billing.AddLineItemActivity)
-	w.RegisterActivity(billing.FinalizeBillActivity)
+	w.RegisterWorkflow(workflow.CreateBillWorkflow)
+	w.RegisterActivity(activity.CreateBillActivity)
+	w.RegisterActivity(activity.AddLineItemActivity)
+	w.RegisterActivity(activity.FinalizeBillActivity)
 
 	err = w.Start()
 	if err != nil {

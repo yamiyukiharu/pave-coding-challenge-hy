@@ -1,4 +1,4 @@
-package billing_test
+package workflow
 
 import (
 	// Use standard context package
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	billing "encore.app/billing/workflow"
+	"encore.app/billing/activity"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +18,7 @@ type UnitTestSuite struct {
 	suite.Suite
 	testsuite.WorkflowTestSuite
 	env           *testsuite.TestWorkflowEnvironment
-	workflowInput billing.CreateBillWorkflowInput
+	workflowInput CreateBillWorkflowInput
 }
 
 func (s *UnitTestSuite) SetupTest() {
@@ -26,7 +26,7 @@ func (s *UnitTestSuite) SetupTest() {
 
 	periodStart := time.Now()
 	periodEnd := periodStart.Add(24 * time.Hour)
-	s.workflowInput = billing.CreateBillWorkflowInput{
+	s.workflowInput = CreateBillWorkflowInput{
 		AccountId:   "account123",
 		Currency:    "USD",
 		PeriodStart: periodStart,
@@ -37,15 +37,15 @@ func (s *UnitTestSuite) SetupTest() {
 func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	// Prepare
 	billId := int64(123)
-	s.env.OnActivity(billing.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
-	s.env.OnActivity(billing.FinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.FinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow("FinalizeBill", nil)
 	}, time.Hour)
 
 	// Execute
-	s.env.ExecuteWorkflow(billing.CreateBillWorkflow, s.workflowInput)
+	s.env.ExecuteWorkflow(CreateBillWorkflow, s.workflowInput)
 
 	// Assert
 	s.True(s.env.IsWorkflowCompleted())
@@ -57,11 +57,11 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 func (s *UnitTestSuite) TestTimerFinalizeBill() {
 	// Prepare
 	billId := int64(123)
-	s.env.OnActivity(billing.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
-	s.env.OnActivity(billing.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
-	s.env.ExecuteWorkflow(billing.CreateBillWorkflow, s.workflowInput)
+	s.env.ExecuteWorkflow(CreateBillWorkflow, s.workflowInput)
 
 	// Assert
 	s.True(s.env.IsWorkflowCompleted())
@@ -73,23 +73,23 @@ func (s *UnitTestSuite) TestTimerFinalizeBill() {
 func (s *UnitTestSuite) TestAddLineItem() {
 	// Prepare
 	billId := int64(123)
-	lineItem := billing.AddLineItemSignalInput{
+	lineItem := activity.AddLineItemSignalInput{
 		Reference:    "REF001",
 		Description:  "Service Fee",
 		Amount:       decimal.NewFromFloat(100.00),
 		Currency:     "USD",
 		ExchangeRate: 1.0,
 	}
-	s.env.OnActivity(billing.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
-	s.env.OnActivity(billing.AddLineItemActivity, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	s.env.OnActivity(billing.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.AddLineItemActivity, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow("AddLineItem", lineItem)
 	}, time.Hour)
 
 	// Execute
-	s.env.ExecuteWorkflow(billing.CreateBillWorkflow, s.workflowInput)
+	s.env.ExecuteWorkflow(CreateBillWorkflow, s.workflowInput)
 
 	// Assert
 	s.True(s.env.IsWorkflowCompleted())
@@ -100,7 +100,7 @@ func (s *UnitTestSuite) TestAddLineItem() {
 		"AddLineItemActivity",
 		mock.Anything,
 		billId,
-		mock.MatchedBy(func(args billing.AddLineItemSignalInput) bool { return cmp.Equal(args, lineItem) }),
+		mock.MatchedBy(func(args activity.AddLineItemSignalInput) bool { return cmp.Equal(args, lineItem) }),
 	)
 	s.env.AssertActivityCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, billId)
 }
