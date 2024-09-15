@@ -3,7 +3,6 @@ CREATE TABLE bill (
     status VARCHAR(255) NOT NULL,
     currency VARCHAR(255) NOT NULL,
     account_id VARCHAR(255) NOT NULL,
-    total_amount DECIMAL(38, 18) NOT NULL,
     period_start TIMESTAMPTZ NOT NULL,
     period_end TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL

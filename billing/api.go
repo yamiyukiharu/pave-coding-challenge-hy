@@ -7,6 +7,7 @@ import (
 	"encore.app/billing/activity"
 	"encore.app/billing/db"
 	billing "encore.app/billing/workflow"
+	"encore.dev/beta/errs"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
@@ -65,7 +66,16 @@ type AddLineItemRequest struct {
 
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
-	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
+	// check closed
+	bill, err := db.GetBillByID(ctx, req.BillId)
+	if err != nil {
+		return nil, err
+	}
+	if bill.Status == db.StatusClosed {
+		return nil, &errs.Error{Code: errs.FailedPrecondition, Message: "Bill is already closed"}
+	}
+
+	err = s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
 		BillId:       req.BillId,
 		Reference:    req.Reference,
 		Description:  req.Description,
@@ -94,10 +104,17 @@ type BillDetailsResponse struct {
 
 //encore:api public method=POST path=/bills/close
 func (s *Service) CloseBill(ctx context.Context, req *CloseBillRequest) (*BillDetailsResponse, error) {
-	// check if closable
+	// check closed
+	bill, err := db.GetBillByID(ctx, req.BillId)
+	if err != nil {
+		return nil, err
+	}
+	if bill.Status == db.StatusClosed {
+		return nil, &errs.Error{Code: errs.FailedPrecondition, Message: "Bill is already closed"}
+	}
 
 	// trigger close
-	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.CloseBillSignal, activity.CloseBillInput{
+	err = s.client.SignalWorkflow(ctx, req.BillId, "", activity.CloseBillSignal, activity.CloseBillInput{
 		BillId: req.BillId,
 	})
 	if err != nil {

@@ -16,14 +16,13 @@ const (
 )
 
 type DbBill struct {
-	Id          string          `db:"id,pk,auto"`
-	Status      Status          `db:"status"` // index
-	Currency    string          `db:"currency"`
-	AccountId   string          `db:"account_id"` // index
-	TotalAmount decimal.Decimal `db:"total_amount"`
-	PeriodStart time.Time       `db:"end_at"`
-	PeriodEnd   time.Time       `db:"end_at"`
-	CreatedAt   time.Time       `db:"created_at"`
+	Id          string    `db:"id,pk,auto"`
+	Status      Status    `db:"status"` // index
+	Currency    string    `db:"currency"`
+	AccountId   string    `db:"account_id"` // index
+	PeriodStart time.Time `db:"end_at"`
+	PeriodEnd   time.Time `db:"end_at"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 type DbBillItem struct {
@@ -77,7 +76,7 @@ func InsertBillItem(ctx context.Context, billId string, reference, description s
 
 func GetBillByID(ctx context.Context, billId string) (*DbBill, error) {
 	const query = `
-		SELECT id, status, total_amount, currency, account_id, created_at
+		SELECT id, status, currency, account_id, created_at
 		FROM bill
 		WHERE id = $1
 	`
@@ -85,7 +84,6 @@ func GetBillByID(ctx context.Context, billId string) (*DbBill, error) {
 	err := db.QueryRow(ctx, query, billId).Scan(
 		&bill.Id,
 		&bill.Status,
-		&bill.TotalAmount,
 		&bill.Currency,
 		&bill.AccountId,
 		&bill.CreatedAt,
