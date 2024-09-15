@@ -74,6 +74,10 @@ func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Re
 		return nil, &errs.Error{Code: errs.FailedPrecondition, Message: "Bill is already closed"}
 	}
 
+	if req.Amount.IsNegative() {
+		return nil, &errs.Error{Code: errs.InvalidArgument, Message: "Amount is negative"}
+	}
+
 	err = s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
 		BillId:       req.BillId,
 		Reference:    req.Reference,
