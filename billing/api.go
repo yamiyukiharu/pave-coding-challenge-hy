@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"encore.app/billing/activity"
+	"encore.app/billing/db"
 	billing "encore.app/billing/workflow"
 	"github.com/shopspring/decimal"
 
@@ -50,6 +51,7 @@ type CreateBillRequest struct {
 
 //encore:api public method=POST path=/bills
 func (s *Service) CreateBill(ctx context.Context, req *CreateBillRequest) (*Response, error) {
+	ctx = db.SetDaoToContext(ctx, s.dao)
 	options := client.StartWorkflowOptions{
 		ID:        "create-bill-workflow",
 		TaskQueue: BillingTaskQueue,
@@ -80,6 +82,7 @@ type AddLineItemRequest struct {
 
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItemSignal(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
+	ctx = db.SetDaoToContext(ctx, s.dao)
 	err := s.client.SignalWorkflow(ctx, "haha", "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
 		Reference:    req.Reference,
 		Description:  req.Description,

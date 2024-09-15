@@ -16,8 +16,16 @@ type AddLineItemSignalInput struct {
 	ExchangeRate float64
 }
 
-func CreateBillActivity(ctx context.Context, accountId string, currency string, periodStart, periodEnd time.Time) (int64, error) {
-	return db.InsertBill(ctx, db.StatusOpen, accountId, currency, periodStart, periodEnd)
+type CreateBillInput struct {
+	AccountId   string
+	Currency    string
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+}
+
+func CreateBillActivity(ctx context.Context, input CreateBillInput) (int64, error) {
+	dao := db.GetDaoFromContext(ctx)
+	return dao.InsertBill(ctx, db.StatusOpen, input.AccountId, input.Currency, input.PeriodStart, input.PeriodEnd)
 }
 
 func AddLineItemActivity(
@@ -25,16 +33,19 @@ func AddLineItemActivity(
 	billID int64,
 	lineItemInput AddLineItemSignalInput,
 ) error {
-	_, err := db.InsertBillItem(ctx, billID, lineItemInput.Reference, lineItemInput.Description, lineItemInput.Amount, lineItemInput.Currency, lineItemInput.ExchangeRate)
+	dao := db.GetDaoFromContext(ctx)
+
+	_, err := dao.InsertBillItem(ctx, billID, lineItemInput.Reference, lineItemInput.Description, lineItemInput.Amount, lineItemInput.Currency, lineItemInput.ExchangeRate)
 	if err != nil {
 		return err
 	}
 
-	return db.UpdateBillTotal(ctx, billID, lineItemInput.Amount)
+	return dao.UpdateBillTotal(ctx, billID, lineItemInput.Amount)
 }
 
 func FinalizeBillActivity(ctx context.Context, billID int64) error {
-	err := db.UpdateBillStatus(ctx, billID, db.StatusClosed)
+	dao := db.GetDaoFromContext(ctx)
+	err := dao.UpdateBillStatus(ctx, billID, db.StatusClosed)
 	if err != nil {
 		return err
 	}
@@ -43,7 +54,8 @@ func FinalizeBillActivity(ctx context.Context, billID int64) error {
 }
 
 func TimerFinalizeBillActivity(ctx context.Context, billID int64) error {
-	err := db.UpdateBillStatus(ctx, billID, db.StatusClosed)
+	dao := db.GetDaoFromContext(ctx)
+	err := dao.UpdateBillStatus(ctx, billID, db.StatusClosed)
 	if err != nil {
 		return err
 	}

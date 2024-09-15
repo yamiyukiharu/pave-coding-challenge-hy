@@ -28,7 +28,7 @@ func CreateBillWorkflow(ctx workflow.Context, input CreateBillWorkflowInput) (*W
 	ctx = workflow.WithActivityOptions(ctx, ao)
 
 	var billID int64
-	err := workflow.ExecuteActivity(ctx, activity.CreateBillActivity, input.AccountId, input.Currency, input.PeriodStart, input.PeriodEnd).Get(ctx, &billID)
+	err := workflow.ExecuteActivity(ctx, activity.CreateBillActivity, input).Get(ctx, &billID)
 	if err != nil {
 		return nil, err
 	}

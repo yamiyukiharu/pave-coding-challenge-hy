@@ -37,7 +37,7 @@ func (s *UnitTestSuite) SetupTest() {
 func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	// Prepare
 	billId := int64(123)
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
 	s.env.OnActivity(activity.FinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
@@ -57,7 +57,7 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 func (s *UnitTestSuite) TestTimerFinalizeBill() {
 	// Prepare
 	billId := int64(123)
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
 	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
@@ -80,7 +80,7 @@ func (s *UnitTestSuite) TestAddLineItem() {
 		Currency:     "USD",
 		ExchangeRate: 1.0,
 	}
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
 	s.env.OnActivity(activity.AddLineItemActivity, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
 
