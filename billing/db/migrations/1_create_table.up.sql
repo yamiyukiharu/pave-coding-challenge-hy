@@ -1,5 +1,5 @@
 CREATE TABLE bill (
-    id BIGSERIAL PRIMARY KEY,
+    id VARCHAR(255) PRIMARY KEY, 
     status VARCHAR(255) NOT NULL,
     currency VARCHAR(255) NOT NULL,
     account_id VARCHAR(255) NOT NULL,
@@ -14,7 +14,7 @@ CREATE INDEX idx_bills_account_id ON bill(account_id);
 
 CREATE TABLE bill_item (
     id BIGSERIAL PRIMARY KEY,
-    bill_id BIGINT REFERENCES bill(id) ON DELETE CASCADE,
+    bill_id VARCHAR(255) REFERENCES bill(id) ON DELETE CASCADE, 
     reference VARCHAR(255) NOT NULL,
     description TEXT,
     amount DECIMAL(38, 18) NOT NULL,

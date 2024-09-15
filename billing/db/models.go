@@ -16,7 +16,7 @@ const (
 )
 
 type DbBill struct {
-	ID          int64           `db:"id,pk,auto"`
+	Id          string          `db:"id,pk,auto"`
 	Status      Status          `db:"status"` // index
 	Currency    string          `db:"currency"`
 	AccountId   string          `db:"account_id"` // index
@@ -27,8 +27,8 @@ type DbBill struct {
 }
 
 type DbBillItem struct {
-	ID           int64           `db:"id,pk,auto"`
-	BillID       int64           `db:"bill_id"` // index
+	Id           int64           `db:"id,pk,auto"`
+	BillId       string          `db:"bill_id"` // index
 	Reference    string          `db:"reference"`
 	Description  string          `db:"description"`
 	Amount       decimal.Decimal `db:"amount"`
@@ -39,57 +39,51 @@ type DbBillItem struct {
 
 type BillingDaoInterface interface {
 	InsertBill(ctx context.Context, status Status, accountId, currency string, periodStart, periodEnd time.Time) (int64, error)
-	InsertBillItem(ctx context.Context, billID int64, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error)
-	GetBillByID(ctx context.Context, billID int64) (*DbBill, error)
-	GetBillItems(ctx context.Context, billID int64) ([]DbBillItem, error)
-	UpdateBillTotal(ctx context.Context, billID int64, amount decimal.Decimal) error
-	UpdateBillStatus(ctx context.Context, billID int64, status Status) error
-}
-
-func SetDaoToContext(ctx context.Context, dao BillingDaoInterface) context.Context {
-	ctx = context.WithValue(ctx, "dao", dao)
-	return ctx
-}
-
-func GetDaoFromContext(ctx context.Context) BillingDaoInterface {
-	return ctx.Value("dao").(BillingDaoInterface)
+	InsertBillItem(ctx context.Context, billId int64, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error)
+	GetBillByID(ctx context.Context, billId int64) (*DbBill, error)
+	GetBillItems(ctx context.Context, billId int64) ([]DbBillItem, error)
+	UpdateBillTotal(ctx context.Context, billId int64, amount decimal.Decimal) error
+	UpdateBillStatus(ctx context.Context, billId int64, status Status) error
 }
 
 type BillingDao struct {
 	Db *sqldb.Database
 }
 
-func (dao *BillingDao) InsertBill(ctx context.Context, status Status, accountId string, currency string, periodStart, periodEnd time.Time) (int64, error) {
+var db = sqldb.NewDatabase("billing", sqldb.DatabaseConfig{
+	Migrations: "./migrations",
+})
+
+func InsertBill(ctx context.Context, id string, status Status, accountId string, currency string, periodStart, periodEnd time.Time) (string, error) {
 	const query = `
-		INSERT INTO bill (status, total_amount, account_id, currency, period_start, period_end, created_at)
-		VALUES ($1, 0, $2, $3, $4, $5, now())
+		INSERT INTO bill (id, status, total_amount, account_id, currency, period_start, period_end, created_at)
+		VALUES ($1, $2, 0, $3, $4, $5, $6, now())
 		RETURNING id
 	`
-	var id int64
-	err := dao.Db.QueryRow(ctx, query, status, accountId, currency, periodStart, periodEnd).Scan(&id)
+	err := db.QueryRow(ctx, query, id, status, accountId, currency, periodStart, periodEnd).Scan(&id)
 	return id, err
 }
 
-func (dao *BillingDao) InsertBillItem(ctx context.Context, billID int64, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error) {
+func InsertBillItem(ctx context.Context, billId string, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error) {
 	const query = `
 		INSERT INTO bill_item (bill_id, reference, description, amount, currency, exchange_rate, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, now())
 		RETURNING id
 	`
 	var id int64
-	err := dao.Db.QueryRow(ctx, query, billID, reference, description, amount, currency, exchangeRate).Scan(&id)
+	err := db.QueryRow(ctx, query, billId, reference, description, amount, currency, exchangeRate).Scan(&id)
 	return id, err
 }
 
-func (dao *BillingDao) GetBillByID(ctx context.Context, billID int64) (*DbBill, error) {
+func GetBillByID(ctx context.Context, billId string) (*DbBill, error) {
 	const query = `
 		SELECT id, status, total_amount, currency, account_id, created_at
 		FROM bill
 		WHERE id = $1
 	`
 	var bill DbBill
-	err := dao.Db.QueryRow(ctx, query, billID).Scan(
-		&bill.ID,
+	err := db.QueryRow(ctx, query, billId).Scan(
+		&bill.Id,
 		&bill.Status,
 		&bill.TotalAmount,
 		&bill.Currency,
@@ -102,13 +96,13 @@ func (dao *BillingDao) GetBillByID(ctx context.Context, billID int64) (*DbBill, 
 	return &bill, nil
 }
 
-func (dao *BillingDao) GetBillItems(ctx context.Context, billID int64) ([]DbBillItem, error) {
+func GetBillItems(ctx context.Context, billId string) ([]DbBillItem, error) {
 	const query = `
 		SELECT id, bill_id, reference, description, amount, currency, exchange_rate, created_at
 		FROM bill_item
 		WHERE bill_id = $1
 	`
-	rows, err := dao.Db.Query(ctx, query, billID)
+	rows, err := db.Query(ctx, query, billId)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +111,7 @@ func (dao *BillingDao) GetBillItems(ctx context.Context, billID int64) ([]DbBill
 	var items []DbBillItem
 	for rows.Next() {
 		var item DbBillItem
-		err := rows.Scan(&item.ID, &item.BillID, &item.Reference, &item.Description, &item.Amount, &item.Currency, &item.ExchangeRate, &item.CreatedAt)
+		err := rows.Scan(&item.Id, &item.BillId, &item.Reference, &item.Description, &item.Amount, &item.Currency, &item.ExchangeRate, &item.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -126,22 +120,22 @@ func (dao *BillingDao) GetBillItems(ctx context.Context, billID int64) ([]DbBill
 	return items, nil
 }
 
-func (dao *BillingDao) UpdateBillTotal(ctx context.Context, billID int64, amount decimal.Decimal) error {
+func UpdateBillTotal(ctx context.Context, billId string, amount decimal.Decimal) error {
 	const query = `
 		UPDATE bill
 		SET total_amount = total_amount + $1
 		WHERE id = $2
 	`
-	_, err := dao.Db.Exec(ctx, query, amount, billID)
+	_, err := db.Exec(ctx, query, amount, billId)
 	return err
 }
 
-func (dao *BillingDao) UpdateBillStatus(ctx context.Context, billID int64, status Status) error {
+func UpdateBillStatus(ctx context.Context, billId string, status Status) error {
 	const query = `
 		UPDATE bill
 		SET status = $1
 		WHERE id = $2
 	`
-	_, err := dao.Db.Exec(ctx, query, status, billID)
+	_, err := db.Exec(ctx, query, status, billId)
 	return err
 }

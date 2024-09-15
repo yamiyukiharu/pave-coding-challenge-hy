@@ -9,6 +9,7 @@ import (
 )
 
 type AddLineItemSignalInput struct {
+	BillId       string
 	Reference    string
 	Description  string
 	Amount       decimal.Decimal
@@ -17,35 +18,47 @@ type AddLineItemSignalInput struct {
 }
 
 type CreateBillInput struct {
+	BillId      string
 	AccountId   string
 	Currency    string
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 }
 
-func CreateBillActivity(ctx context.Context, input CreateBillInput) (int64, error) {
-	dao := db.GetDaoFromContext(ctx)
-	return dao.InsertBill(ctx, db.StatusOpen, input.AccountId, input.Currency, input.PeriodStart, input.PeriodEnd)
+type CloseBillInput struct {
+	BillId string
+}
+
+func CreateBillActivity(ctx context.Context, input CreateBillInput) (string, error) {
+	return db.InsertBill(ctx, input.BillId, db.StatusOpen, input.AccountId, input.Currency, input.PeriodStart, input.PeriodEnd)
 }
 
 func AddLineItemActivity(
 	ctx context.Context,
-	billID int64,
-	lineItemInput AddLineItemSignalInput,
+	input AddLineItemSignalInput,
 ) error {
-	dao := db.GetDaoFromContext(ctx)
 
-	_, err := dao.InsertBillItem(ctx, billID, lineItemInput.Reference, lineItemInput.Description, lineItemInput.Amount, lineItemInput.Currency, lineItemInput.ExchangeRate)
+	_, err := db.InsertBillItem(ctx, input.BillId, input.Reference, input.Description, input.Amount, input.Currency, input.ExchangeRate)
 	if err != nil {
 		return err
 	}
-
-	return dao.UpdateBillTotal(ctx, billID, lineItemInput.Amount)
+	return nil
 }
 
-func FinalizeBillActivity(ctx context.Context, billID int64) error {
-	dao := db.GetDaoFromContext(ctx)
-	err := dao.UpdateBillStatus(ctx, billID, db.StatusClosed)
+func UpdateBillTotalActivity(
+	ctx context.Context,
+	input AddLineItemSignalInput,
+) error {
+
+	err := db.UpdateBillTotal(ctx, input.BillId, input.Amount)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func CloseBillActivity(ctx context.Context, input CloseBillInput) error {
+	err := db.UpdateBillStatus(ctx, input.BillId, db.StatusClosed)
 	if err != nil {
 		return err
 	}
@@ -53,9 +66,8 @@ func FinalizeBillActivity(ctx context.Context, billID int64) error {
 	return nil
 }
 
-func TimerFinalizeBillActivity(ctx context.Context, billID int64) error {
-	dao := db.GetDaoFromContext(ctx)
-	err := dao.UpdateBillStatus(ctx, billID, db.StatusClosed)
+func TimerCloseBillActivity(ctx context.Context, input CloseBillInput) error {
+	err := db.UpdateBillStatus(ctx, input.BillId, db.StatusClosed)
 	if err != nil {
 		return err
 	}

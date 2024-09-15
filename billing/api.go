@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"encore.app/billing/activity"
-	"encore.app/billing/db"
 	billing "encore.app/billing/workflow"
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
 	"go.temporal.io/sdk/client"
@@ -51,12 +51,13 @@ type CreateBillRequest struct {
 
 //encore:api public method=POST path=/bills
 func (s *Service) CreateBill(ctx context.Context, req *CreateBillRequest) (*Response, error) {
-	ctx = db.SetDaoToContext(ctx, s.dao)
+	billId := uuid.New().String()
 	options := client.StartWorkflowOptions{
-		ID:        "create-bill-workflow",
+		ID:        billId,
 		TaskQueue: BillingTaskQueue,
 	}
 	we, err := s.client.ExecuteWorkflow(ctx, options, billing.CreateBillWorkflow, billing.CreateBillWorkflowInput{
+		BillId:      billId,
 		AccountId:   req.AccountId,
 		Currency:    req.Currency,
 		PeriodStart: req.PeriodStart,
@@ -73,6 +74,7 @@ func (s *Service) CreateBill(ctx context.Context, req *CreateBillRequest) (*Resp
 // ==================================================================
 
 type AddLineItemRequest struct {
+	BillId       string          `json:"bill_id"`
 	Reference    string          `json:"reference"`
 	Description  string          `json:"description"`
 	Amount       decimal.Decimal `json:"amount"`
@@ -82,8 +84,7 @@ type AddLineItemRequest struct {
 
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItemSignal(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
-	ctx = db.SetDaoToContext(ctx, s.dao)
-	err := s.client.SignalWorkflow(ctx, "haha", "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
+	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
 		Reference:    req.Reference,
 		Description:  req.Description,
 		Amount:       req.Amount,

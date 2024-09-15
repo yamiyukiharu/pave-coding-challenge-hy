@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"encore.app/billing/activity"
+	"encore.app/billing/db"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
@@ -27,6 +28,7 @@ func (s *UnitTestSuite) SetupTest() {
 	periodStart := time.Now()
 	periodEnd := periodStart.Add(24 * time.Hour)
 	s.workflowInput = CreateBillWorkflowInput{
+		Dao:         new(db.MockDao),
 		AccountId:   "account123",
 		Currency:    "USD",
 		PeriodStart: periodStart,
@@ -38,7 +40,7 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	// Prepare
 	billId := int64(123)
 	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
-	s.env.OnActivity(activity.FinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.CloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow(activity.FinalizeBillSignal, nil)
@@ -58,7 +60,7 @@ func (s *UnitTestSuite) TestTimerFinalizeBill() {
 	// Prepare
 	billId := int64(123)
 	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
-	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.TimerCloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
 	s.env.ExecuteWorkflow(CreateBillWorkflow, s.workflowInput)
@@ -82,7 +84,7 @@ func (s *UnitTestSuite) TestAddLineItem() {
 	}
 	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
 	s.env.OnActivity(activity.AddLineItemActivity, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	s.env.OnActivity(activity.TimerFinalizeBillActivity, mock.Anything, mock.Anything).Return(nil)
+	s.env.OnActivity(activity.TimerCloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow(activity.AddLineItemSignal, lineItem)
