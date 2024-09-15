@@ -45,18 +45,6 @@ func AddLineItemActivity(
 	return nil
 }
 
-func UpdateBillTotalActivity(
-	ctx context.Context,
-	input AddLineItemSignalInput,
-) error {
-
-	err := db.UpdateBillTotal(ctx, input.BillId, input.Amount)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func CloseBillActivity(ctx context.Context, input CloseBillInput) error {
 	err := db.UpdateBillStatus(ctx, input.BillId, db.StatusClosed)
 	if err != nil {

@@ -55,8 +55,8 @@ var db = sqldb.NewDatabase("billing", sqldb.DatabaseConfig{
 
 func InsertBill(ctx context.Context, id string, status Status, accountId string, currency string, periodStart, periodEnd time.Time) (string, error) {
 	const query = `
-		INSERT INTO bill (id, status, total_amount, account_id, currency, period_start, period_end, created_at)
-		VALUES ($1, $2, 0, $3, $4, $5, $6, now())
+		INSERT INTO bill (id, status, account_id, currency, period_start, period_end, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, now())
 		RETURNING id
 	`
 	err := db.QueryRow(ctx, query, id, status, accountId, currency, periodStart, periodEnd).Scan(&id)
@@ -116,16 +116,6 @@ func GetBillItems(ctx context.Context, billId string) ([]DbBillItem, error) {
 		items = append(items, item)
 	}
 	return items, nil
-}
-
-func UpdateBillTotal(ctx context.Context, billId string, amount decimal.Decimal) error {
-	const query = `
-		UPDATE bill
-		SET total_amount = total_amount + $1
-		WHERE id = $2
-	`
-	_, err := db.Exec(ctx, query, amount, billId)
-	return err
 }
 
 func UpdateBillStatus(ctx context.Context, billId string, status Status) error {
