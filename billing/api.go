@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	billing "encore.app/billing/workflow"
 	"github.com/shopspring/decimal"
 
 	"go.temporal.io/sdk/client"
@@ -52,7 +53,7 @@ func (s *Service) CreateBill(ctx context.Context, req *CreateBillRequest) (*Resp
 		ID:        "create-bill-workflow",
 		TaskQueue: BillingTaskQueue,
 	}
-	we, err := s.client.ExecuteWorkflow(ctx, options, CreateBillWorkflow, CreateBillWorkflowInput{
+	we, err := s.client.ExecuteWorkflow(ctx, options, billing.CreateBillWorkflow, billing.CreateBillWorkflowInput{
 		AccountId:   req.AccountId,
 		Currency:    req.Currency,
 		PeriodStart: req.PeriodStart,
@@ -78,7 +79,7 @@ type AddLineItemRequest struct {
 
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
-	err := s.client.SignalWorkflow(ctx, "haha", "", "AddLineItem", AddLineItemSignalInput{
+	err := s.client.SignalWorkflow(ctx, "haha", "", "AddLineItem", billing.AddLineItemSignalInput{
 		Reference:    req.Reference,
 		Description:  req.Description,
 		Amount:       req.Amount,
