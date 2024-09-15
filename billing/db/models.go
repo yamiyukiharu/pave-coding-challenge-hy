@@ -156,3 +156,36 @@ func GetBillDetailsWithTotal(ctx context.Context, billId string) (*DbBill, []DbB
 
 	return bill, lineItems, totalAmount, nil
 }
+
+func GetBillsByAccountAndStatus(ctx context.Context, accountId string, status Status) ([]DbBill, error) {
+	const query = `
+		SELECT id, status, currency, account_id, period_start, period_end, created_at
+		FROM bill
+		WHERE status = $1 AND account_id= $2
+	`
+	rows, err := db.Query(ctx, query, status, accountId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bills []DbBill
+	for rows.Next() {
+		var bill DbBill
+		err := rows.Scan(
+			&bill.Id,
+			&bill.Status,
+			&bill.Currency,
+			&bill.AccountId,
+			&bill.PeriodStart,
+			&bill.PeriodEnd,
+			&bill.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		bills = append(bills, bill)
+	}
+
+	return bills, nil
+}

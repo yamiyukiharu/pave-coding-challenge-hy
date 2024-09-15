@@ -19,7 +19,6 @@ import (
 // Response defines the standard API response for billing services.
 type Response struct {
 	Message string
-	Error   string `json:",omitempty"`
 }
 
 // ==================================================================
@@ -130,7 +129,42 @@ func (s *Service) CloseBill(ctx context.Context, req *CloseBillRequest) (*BillDe
 		return nil, err
 	}
 
-	bill, lineItems, totalAmount, err := db.GetBillDetailsWithTotal(ctx, req.BillId)
+	return getBillDetails(ctx, req.BillId)
+}
+
+// ==================================================================
+
+type ListBillsResponse struct {
+	Bills []db.DbBill `json:"bills"`
+}
+
+type ListBillsRequest struct {
+	Status    string `query:"status"`
+	AccountId string `query:"account_id"`
+}
+
+//encore:api public method=GET path=/bills
+func (s *Service) ListBills(ctx context.Context, req *ListBillsRequest) (*ListBillsResponse, error) {
+	bills, err := db.GetBillsByAccountAndStatus(ctx, req.AccountId, db.Status(req.Status))
+	if err != nil {
+		return nil, &errs.Error{
+			Code:    errs.Internal,
+			Message: "Failed to retrieve bills.",
+		}
+	}
+
+	return &ListBillsResponse{Bills: bills}, nil
+}
+
+// ==================================================================
+
+//encore:api public method=GET path=/bill/:billId
+func (s *Service) GetBill(ctx context.Context, billId string) (*BillDetailsResponse, error) {
+	return getBillDetails(ctx, billId)
+}
+
+func getBillDetails(ctx context.Context, billId string) (*BillDetailsResponse, error) {
+	bill, lineItems, totalAmount, err := db.GetBillDetailsWithTotal(ctx, billId)
 	if err != nil {
 		return nil, err
 	}
