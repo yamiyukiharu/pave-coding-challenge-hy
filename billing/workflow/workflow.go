@@ -41,65 +41,64 @@ func CreateBillWorkflow(ctx workflow.Context, workflowInput CreateBillWorkflowIn
 	timerFuture := workflow.NewTimer(ctx, durationUntilEnd)
 	selector := workflow.NewSelector(ctx)
 
+	selector.AddReceive(createBillSignalCh, func(c workflow.ReceiveChannel, more bool) {
+		var input activity.CreateBillInput
+		c.Receive(ctx, &input)
+
+		err := workflow.ExecuteActivity(ctx, activity.CreateBillActivity, input).Get(ctx, nil)
+		if err != nil {
+			workflow.GetLogger(ctx).Error("Failed to create Bull", "Error", err)
+			return
+		}
+		workflow.GetLogger(ctx).Info("Created Bull", "BillId", input.BillId)
+	})
+
+	selector.AddReceive(lineItemSignalCh, func(c workflow.ReceiveChannel, more bool) {
+		var input activity.AddLineItemSignalInput
+		c.Receive(ctx, &input)
+		workflow.GetLogger(ctx).Info("Received signal,adding item to bill", "BillId", input.BillId)
+
+		err := workflow.ExecuteActivity(ctx, activity.AddLineItemActivity, input).Get(ctx, nil)
+		if err != nil {
+			workflow.GetLogger(ctx).Error("Failed to add line item", "Error", err)
+			return
+		}
+		workflow.GetLogger(ctx).Info("Added line item", "BillId", input.BillId, "Description", input.Description)
+	})
+
+	selector.AddReceive(finalizeBillSignalCh, func(c workflow.ReceiveChannel, more bool) {
+		var input activity.CloseBillInput
+		c.Receive(ctx, &input)
+		workflow.GetLogger(ctx).Info("Received signal, closing the bill", "BillId", input.BillId)
+
+		err := workflow.ExecuteActivity(ctx, activity.CloseBillActivity, input).Get(ctx, nil)
+		if err != nil {
+			workflow.GetLogger(ctx).Error("Failed to finalize the bill", "Error", err)
+			return
+		}
+
+		workflow.GetLogger(ctx).Info("Successfully finalized the bill", "BillId", input.BillId)
+		isDone = true
+	})
+
+	selector.AddFuture(timerFuture, func(f workflow.Future) {
+		if isEnded {
+			return
+		}
+		workflow.GetLogger(ctx).Info("Billing period ended, closing the bill", "BillId", workflowInput.BillId)
+
+		workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
+		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+
+		workflow.SignalExternalWorkflow(ctx, workflowID, runID, activity.FinalizeBillSignal, activity.CloseBillInput{BillId: workflowInput.BillId})
+		isEnded = true
+	})
+
 	for {
 		selector.Select(ctx)
-
-		selector.AddReceive(createBillSignalCh, func(c workflow.ReceiveChannel, more bool) {
-			var input activity.CreateBillInput
-			c.Receive(ctx, &input)
-
-			err := workflow.ExecuteActivity(ctx, activity.CreateBillActivity, input).Get(ctx, nil)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("Failed to create Bull", "Error", err)
-				return
-			}
-			workflow.GetLogger(ctx).Info("Created Bull", "BillId", input.BillId)
-		})
-
-		selector.AddReceive(lineItemSignalCh, func(c workflow.ReceiveChannel, more bool) {
-			var input activity.AddLineItemSignalInput
-			c.Receive(ctx, &input)
-			workflow.GetLogger(ctx).Info("Received signal,adding item to bill", "BillId", input.BillId)
-
-			err := workflow.ExecuteActivity(ctx, activity.AddLineItemActivity, input).Get(ctx, nil)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("Failed to add line item", "Error", err)
-				return
-			}
-			workflow.GetLogger(ctx).Info("Added line item", "BillId", input.BillId, "Description", input.Description)
-		})
-
-		selector.AddReceive(finalizeBillSignalCh, func(c workflow.ReceiveChannel, more bool) {
-			var input activity.CloseBillInput
-			c.Receive(ctx, &input)
-			workflow.GetLogger(ctx).Info("Received signal, closing the bill", "BillId", input.BillId)
-
-			err := workflow.ExecuteActivity(ctx, activity.CloseBillActivity, input).Get(ctx, nil)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("Failed to finalize the bill", "Error", err)
-				return
-			}
-
-			workflow.GetLogger(ctx).Info("Successfully finalized the bill", "BillId", input.BillId)
-			isDone = true
-		})
-
-		selector.AddFuture(timerFuture, func(f workflow.Future) {
-			if isEnded {
-				return
-			}
-			workflow.GetLogger(ctx).Info("Billing period ended, closing the bill", "BillId", workflowInput.BillId)
-
-			workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
-			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-
-			workflow.SignalExternalWorkflow(ctx, workflowID, runID, activity.FinalizeBillSignal, activity.CloseBillInput{BillId: workflowInput.BillId})
-			isEnded = true
-		})
-
-		workflow.Sleep(ctx, time.Second*1)
 		if isDone {
 			return nil, nil
 		}
+		workflow.Sleep(ctx, time.Second*1)
 	}
 }

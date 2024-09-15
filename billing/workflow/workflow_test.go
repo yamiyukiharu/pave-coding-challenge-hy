@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"encore.app/billing/activity"
-	"encore.app/billing/db"
 	"github.com/google/go-cmp/cmp"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/mock"
@@ -28,7 +27,7 @@ func (s *UnitTestSuite) SetupTest() {
 	periodStart := time.Now()
 	periodEnd := periodStart.Add(24 * time.Hour)
 	s.workflowInput = CreateBillWorkflowInput{
-		Dao:         new(db.MockDao),
+		BillId:      "1234",
 		AccountId:   "account123",
 		Currency:    "USD",
 		PeriodStart: periodStart,
@@ -38,8 +37,7 @@ func (s *UnitTestSuite) SetupTest() {
 
 func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	// Prepare
-	billId := int64(123)
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(s.workflowInput.BillId, nil)
 	s.env.OnActivity(activity.CloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
@@ -52,14 +50,13 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	// Assert
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityCalled(s.T(), "FinalizeBillActivity", mock.Anything, billId)
-	s.env.AssertActivityNotCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, billId)
+	s.env.AssertActivityCalled(s.T(), "FinalizeBillActivity", mock.Anything, s.workflowInput.BillId)
+	s.env.AssertActivityNotCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, s.workflowInput.BillId)
 }
 
 func (s *UnitTestSuite) TestTimerFinalizeBill() {
 	// Prepare
-	billId := int64(123)
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(s.workflowInput.BillId, nil)
 	s.env.OnActivity(activity.TimerCloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	// Execute
@@ -68,13 +65,12 @@ func (s *UnitTestSuite) TestTimerFinalizeBill() {
 	// Assert
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, billId)
-	s.env.AssertActivityNotCalled(s.T(), "FinalizeBillActivity", mock.Anything, billId)
+	s.env.AssertActivityCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, s.workflowInput.BillId)
+	s.env.AssertActivityNotCalled(s.T(), "FinalizeBillActivity", mock.Anything, s.workflowInput.BillId)
 }
 
 func (s *UnitTestSuite) TestAddLineItem() {
 	// Prepare
-	billId := int64(123)
 	lineItem := activity.AddLineItemSignalInput{
 		Reference:    "REF001",
 		Description:  "Service Fee",
@@ -82,7 +78,7 @@ func (s *UnitTestSuite) TestAddLineItem() {
 		Currency:     "USD",
 		ExchangeRate: 1.0,
 	}
-	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(billId, nil)
+	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(s.workflowInput.BillId, nil)
 	s.env.OnActivity(activity.AddLineItemActivity, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	s.env.OnActivity(activity.TimerCloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
@@ -101,10 +97,10 @@ func (s *UnitTestSuite) TestAddLineItem() {
 		s.T(),
 		"AddLineItemActivity",
 		mock.Anything,
-		billId,
+		s.workflowInput.BillId,
 		mock.MatchedBy(func(args activity.AddLineItemSignalInput) bool { return cmp.Equal(args, lineItem) }),
 	)
-	s.env.AssertActivityCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, billId)
+	s.env.AssertActivityCalled(s.T(), "TimerFinalizeBillActivity", mock.Anything, s.workflowInput.BillId)
 }
 
 func TestUnitTestSuite(t *testing.T) {

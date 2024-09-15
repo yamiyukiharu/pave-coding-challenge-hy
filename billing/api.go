@@ -85,6 +85,7 @@ type AddLineItemRequest struct {
 //encore:api public method=POST path=/bills/item
 func (s *Service) AddLineItemSignal(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
 	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
+		BillId:       req.BillId,
 		Reference:    req.Reference,
 		Description:  req.Description,
 		Amount:       req.Amount,
