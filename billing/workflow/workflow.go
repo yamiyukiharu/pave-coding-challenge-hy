@@ -37,7 +37,7 @@ func CreateBillWorkflow(ctx workflow.Context, workflowInput CreateBillWorkflowIn
 	isEnded := false
 	createBillSignalCh := workflow.GetSignalChannel(ctx, activity.CreateBillSignal)
 	lineItemSignalCh := workflow.GetSignalChannel(ctx, activity.AddLineItemSignal)
-	finalizeBillSignalCh := workflow.GetSignalChannel(ctx, activity.FinalizeBillSignal)
+	finalizeBillSignalCh := workflow.GetSignalChannel(ctx, activity.CloseBillSignal)
 	timerFuture := workflow.NewTimer(ctx, durationUntilEnd)
 	selector := workflow.NewSelector(ctx)
 
@@ -90,7 +90,7 @@ func CreateBillWorkflow(ctx workflow.Context, workflowInput CreateBillWorkflowIn
 		workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 		runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 
-		workflow.SignalExternalWorkflow(ctx, workflowID, runID, activity.FinalizeBillSignal, activity.CloseBillInput{BillId: workflowInput.BillId})
+		workflow.SignalExternalWorkflow(ctx, workflowID, runID, activity.CloseBillSignal, activity.CloseBillInput{BillId: workflowInput.BillId})
 		isEnded = true
 	})
 

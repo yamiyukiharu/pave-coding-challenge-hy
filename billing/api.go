@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"encore.app/billing/activity"
+	"encore.app/billing/db"
 	billing "encore.app/billing/workflow"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
@@ -18,26 +19,6 @@ import (
 type Response struct {
 	Message string
 	Error   string `json:",omitempty"`
-}
-
-// Bill represents a bill object in the system.
-type Bill struct {
-	ID          string
-	Status      string
-	Currency    string
-	TotalAmount float64
-	LineItems   []LineItem
-}
-
-// LineItem represents an individual fee in a bill.
-type LineItem struct {
-	Description string  `json:"description"`
-	Amount      float64 `json:"amount"`
-}
-
-// ListBillsResponse defines the response for the ListBills API.
-type ListBillsResponse struct {
-	Bills []*Bill `json:"bills"`
 }
 
 // ==================================================================
@@ -83,7 +64,7 @@ type AddLineItemRequest struct {
 }
 
 //encore:api public method=POST path=/bills/item
-func (s *Service) AddLineItemSignal(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
+func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
 	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
 		BillId:       req.BillId,
 		Reference:    req.Reference,
@@ -97,4 +78,49 @@ func (s *Service) AddLineItemSignal(ctx context.Context, req *AddLineItemRequest
 	}
 
 	return &Response{Message: "Line item added to workflow"}, nil
+}
+
+// ==================================================================
+
+type CloseBillRequest struct {
+	BillId string `json:"bill_id"`
+}
+
+type BillDetailsResponse struct {
+	Bill        *db.DbBill      `json:"bill"`
+	LineItems   []db.DbBillItem `json:"line_items"`
+	TotalAmount decimal.Decimal `json:"total_amount"`
+}
+
+//encore:api public method=POST path=/bills/close
+func (s *Service) CloseBill(ctx context.Context, req *CloseBillRequest) (*BillDetailsResponse, error) {
+	// check if closable
+
+	// trigger close
+	err := s.client.SignalWorkflow(ctx, req.BillId, "", activity.CloseBillSignal, activity.CloseBillInput{
+		BillId: req.BillId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// wait for workflow to complete
+	we := s.client.GetWorkflow(ctx, req.BillId, "")
+	var result any
+
+	err = we.Get(ctx, &result) // Blocking until the workflow is finished
+	if err != nil {
+		return nil, err
+	}
+
+	bill, lineItems, totalAmount, err := db.GetBillDetailsWithTotal(ctx, req.BillId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BillDetailsResponse{
+		Bill:        bill,
+		LineItems:   lineItems,
+		TotalAmount: totalAmount,
+	}, nil
 }

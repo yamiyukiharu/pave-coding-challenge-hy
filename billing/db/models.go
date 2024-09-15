@@ -139,3 +139,22 @@ func UpdateBillStatus(ctx context.Context, billId string, status Status) error {
 	_, err := db.Exec(ctx, query, status, billId)
 	return err
 }
+
+func GetBillDetailsWithTotal(ctx context.Context, billId string) (*DbBill, []DbBillItem, decimal.Decimal, error) {
+	bill, err := GetBillByID(ctx, billId)
+	if err != nil {
+		return nil, nil, decimal.Zero, err
+	}
+
+	lineItems, err := GetBillItems(ctx, billId)
+	if err != nil {
+		return nil, nil, decimal.Zero, err
+	}
+
+	totalAmount := decimal.Zero
+	for _, item := range lineItems {
+		totalAmount = totalAmount.Add(item.Amount)
+	}
+
+	return bill, lineItems, totalAmount, nil
+}

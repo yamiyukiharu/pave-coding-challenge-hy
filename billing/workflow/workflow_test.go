@@ -41,7 +41,7 @@ func (s *UnitTestSuite) TestSignalFinalizeBill() {
 	s.env.OnActivity(activity.CloseBillActivity, mock.Anything, mock.Anything).Return(nil)
 
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow(activity.FinalizeBillSignal, nil)
+		s.env.SignalWorkflow(activity.CloseBillSignal, nil)
 	}, time.Hour)
 
 	// Execute

@@ -1,5 +1,5 @@
 package activity
 
 const CreateBillSignal = "CreateBill"
-const FinalizeBillSignal = "FinalizeBill"
+const CloseBillSignal = "CloseBill"
 const AddLineItemSignal = "AddLineItem"
