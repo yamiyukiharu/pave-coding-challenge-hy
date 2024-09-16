@@ -18,7 +18,7 @@ CREATE TABLE bill_item (
     description TEXT,
     amount DECIMAL(38, 18) NOT NULL,
     currency VARCHAR(255) NOT NULL,
-    exchange_rate FLOAT8 NOT NULL,
+    exchange_rate DECIMAL(30, 10) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL
 );
 

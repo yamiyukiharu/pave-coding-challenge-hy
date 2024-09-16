@@ -88,11 +88,10 @@ func (s *UnitTestSuite) TestTimerFinalizeBill() {
 func (s *UnitTestSuite) TestAddLineItem() {
 	// Prepare
 	lineItem := activity.AddLineItemSignalInput{
-		Reference:    "REF001",
-		Description:  "Service Fee",
-		Amount:       decimal.NewFromFloat(100.00),
-		Currency:     "USD",
-		ExchangeRate: 1.0,
+		Reference:   "REF001",
+		Description: "Service Fee",
+		Amount:      decimal.NewFromFloat(100.00),
+		Currency:    "USD",
 	}
 	s.env.OnActivity(activity.CreateBillActivity, mock.Anything, mock.Anything).Return(s.workflowInput.BillId, nil)
 	s.env.OnActivity(activity.AddLineItemActivity, mock.Anything, mock.Anything).Return(nil)

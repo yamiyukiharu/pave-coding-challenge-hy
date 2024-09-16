@@ -32,13 +32,13 @@ type DbBillItem struct {
 	Description  string          `db:"description"`
 	Amount       decimal.Decimal `db:"amount"`
 	Currency     string          `db:"currency"`
-	ExchangeRate float64         `db:"exchange_rate"`
+	ExchangeRate decimal.Decimal `db:"exchange_rate"`
 	CreatedAt    time.Time       `db:"created_at"`
 }
 
 type BillingDaoInterface interface {
 	InsertBill(ctx context.Context, status Status, accountId, currency string, periodStart, periodEnd time.Time) (int64, error)
-	InsertBillItem(ctx context.Context, billId int64, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error)
+	InsertBillItem(ctx context.Context, billId int64, reference, description string, amount decimal.Decimal, currency string, exchangeRate decimal.Decimal) (int64, error)
 	GetBillByID(ctx context.Context, billId int64) (*DbBill, error)
 	GetBillItems(ctx context.Context, billId int64) ([]DbBillItem, error)
 	UpdateBillTotal(ctx context.Context, billId int64, amount decimal.Decimal) error
@@ -63,7 +63,7 @@ func InsertBill(ctx context.Context, id string, status Status, accountId string,
 	return id, err
 }
 
-func InsertBillItem(ctx context.Context, billId string, reference, description string, amount decimal.Decimal, currency string, exchangeRate float64) (int64, error) {
+func InsertBillItem(ctx context.Context, billId string, reference, description string, amount decimal.Decimal, currency string, exchangeRate decimal.Decimal) (int64, error) {
 	const query = `
 		INSERT INTO bill_item (bill_id, reference, description, amount, currency, exchange_rate, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, now())
@@ -141,7 +141,7 @@ func GetBillDetailsWithTotal(ctx context.Context, billId string) (*DbBill, []DbB
 
 	totalAmount := decimal.Zero
 	for _, item := range lineItems {
-		totalAmount = totalAmount.Add(item.Amount)
+		totalAmount = totalAmount.Add(item.Amount.Mul(item.ExchangeRate))
 	}
 
 	return bill, lineItems, totalAmount, nil

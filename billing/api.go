@@ -55,18 +55,16 @@ func (s *Service) CreateBill(ctx context.Context, req *CreateBillRequest) (*Resp
 // ==================================================================
 
 type AddLineItemRequest struct {
-	BillId       string          `json:"bill_id"`
-	Reference    string          `json:"reference"`
-	Description  string          `json:"description"`
-	Amount       decimal.Decimal `json:"amount"`
-	Currency     string          `json:"currency"`
-	ExchangeRate float64         `json:"exchange_rate"`
+	Reference   string          `json:"reference"`
+	Description string          `json:"description"`
+	Amount      decimal.Decimal `json:"amount"`
+	Currency    string          `json:"currency"`
 }
 
-//encore:api public method=POST path=/bills/item
-func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Response, error) {
+//encore:api public method=POST path=/bills/:billId/item
+func (s *Service) AddLineItem(ctx context.Context, billId string, req *AddLineItemRequest) (*Response, error) {
 	// check closed
-	bill, err := db.GetBillByID(ctx, req.BillId)
+	bill, err := db.GetBillByID(ctx, billId)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +76,12 @@ func (s *Service) AddLineItem(ctx context.Context, req *AddLineItemRequest) (*Re
 		return nil, &errs.Error{Code: errs.InvalidArgument, Message: "Amount is negative"}
 	}
 
-	err = s.client.SignalWorkflow(ctx, req.BillId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
-		BillId:       req.BillId,
-		Reference:    req.Reference,
-		Description:  req.Description,
-		Amount:       req.Amount,
-		Currency:     req.Currency,
-		ExchangeRate: req.ExchangeRate,
+	err = s.client.SignalWorkflow(ctx, billId, "", activity.AddLineItemSignal, activity.AddLineItemSignalInput{
+		BillId:      billId,
+		Reference:   req.Reference,
+		Description: req.Description,
+		Amount:      req.Amount,
+		Currency:    req.Currency,
 	})
 	if err != nil {
 		return nil, err
@@ -105,10 +102,10 @@ type BillDetailsResponse struct {
 	TotalAmount decimal.Decimal `json:"total_amount"`
 }
 
-//encore:api public method=POST path=/bills/close
-func (s *Service) CloseBill(ctx context.Context, req *CloseBillRequest) (*BillDetailsResponse, error) {
+//encore:api public method=POST path=/bills/:billId/close
+func (s *Service) CloseBill(ctx context.Context, billId string, req *CloseBillRequest) (*BillDetailsResponse, error) {
 	// check closed
-	bill, err := db.GetBillByID(ctx, req.BillId)
+	bill, err := db.GetBillByID(ctx, billId)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +114,8 @@ func (s *Service) CloseBill(ctx context.Context, req *CloseBillRequest) (*BillDe
 	}
 
 	// trigger close
-	err = s.client.SignalWorkflow(ctx, req.BillId, "", activity.CloseBillSignal, activity.CloseBillInput{
-		BillId: req.BillId,
+	err = s.client.SignalWorkflow(ctx, billId, "", activity.CloseBillSignal, activity.CloseBillInput{
+		BillId: billId,
 	})
 	if err != nil {
 		return nil, err

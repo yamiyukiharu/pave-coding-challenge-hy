@@ -9,12 +9,11 @@ import (
 )
 
 type AddLineItemSignalInput struct {
-	BillId       string
-	Reference    string
-	Description  string
-	Amount       decimal.Decimal
-	Currency     string
-	ExchangeRate float64
+	BillId      string
+	Reference   string
+	Description string
+	Amount      decimal.Decimal
+	Currency    string
 }
 
 type CreateBillInput struct {
@@ -38,7 +37,9 @@ func AddLineItemActivity(
 	input AddLineItemSignalInput,
 ) error {
 
-	_, err := db.InsertBillItem(ctx, input.BillId, input.Reference, input.Description, input.Amount, input.Currency, input.ExchangeRate)
+	// TODO: fetch exchange rate from forex service
+	rate := decimal.NewFromInt(1)
+	_, err := db.InsertBillItem(ctx, input.BillId, input.Reference, input.Description, input.Amount, input.Currency, rate)
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,8 @@ func TestInsertBillItemAndRetrieve(t *testing.T) {
 
 	// Insert a bill item with high precision (e.g., 18 decimal places)
 	amount := decimal.NewFromFloat(0.123456789012345678)
-	itemID, err := db.InsertBillItem(ctx, billID, "REF001", "Crypto Payment", amount, "ETH", 3000.123456789012345678)
+	rate := decimal.NewFromFloat((3000.123456789))
+	itemID, err := db.InsertBillItem(ctx, billID, "REF001", "Crypto Payment", amount, "ETH", rate)
 	require.NoError(t, err, "failed to insert bill item")
 	require.NotZero(t, itemID, "bill item ID should not be zero")
 
@@ -54,7 +55,7 @@ func TestInsertBillItemAndRetrieve(t *testing.T) {
 	require.Equal(t, "Crypto Payment", item.Description, "description should match")
 	require.Equal(t, amount.Round(18), item.Amount.Round(18), "amount should match with high precision")
 	require.Equal(t, "ETH", item.Currency, "currency should match")
-	require.Equal(t, decimal.NewFromFloat(3000.123456789012345678).Round(18), decimal.NewFromFloat(item.ExchangeRate).Round(18), "exchange rate should match")
+	require.Equal(t, rate.Round(10), item.ExchangeRate.Round(10), "exchange rate should match")
 }
 
 func TestUpdateBillStatus(t *testing.T) {
